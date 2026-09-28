@@ -157,15 +157,15 @@ def _analyze_gemini(jpeg: bytes, system: str) -> str:
     }
     last = "no model tried"
     for model in _gemini_models():
-        for attempt in range(2):
+        for attempt in range(3):
             try:
                 return _gemini_call(model, body)
             except urllib.error.HTTPError as exc:
                 detail = exc.read().decode(errors="replace")[:300]
                 last = f"Gemini {model} HTTP {exc.code}: {detail}"
                 logger.warning(last)
-                if exc.code in (500, 502, 503, 504, 429) and attempt == 0:
-                    time.sleep(2)
+                if exc.code in (500, 502, 503, 504, 429) and attempt < 2:
+                    time.sleep(2 * (attempt + 1))
                     continue
                 break            # 404/403/400 or retry used up -> next model
             except AnalysisUnavailable:
@@ -196,17 +196,25 @@ def analyze(raw: bytes, crop_hint: str = "", language: str = "hinglish") -> dict
     language = language if language in LANGUAGES else "hinglish"
     jpeg = prepare_image(raw)
     system = _system_prompt(_s(crop_hint, 60), language)
-    use_gemini = bool(getattr(settings, "GEMINI_API_KEY", ""))
-    if not use_gemini and not settings.ANTHROPIC_API_KEY:
+    # Providers are tried in order; if one is down/busy we fall through to the next.
+    providers = []
+    if getattr(settings, "GEMINI_API_KEY", ""):
+        providers.append(("Gemini", _analyze_gemini))
+    if settings.ANTHROPIC_API_KEY:
+        providers.append(("Anthropic", _analyze_anthropic))
+    if not providers:
         raise AnalysisUnavailable("No API key set (GEMINI_API_KEY or ANTHROPIC_API_KEY)")
-    try:
-        text = _analyze_gemini(jpeg, system) if use_gemini else _analyze_anthropic(jpeg, system)
-    except AnalysisUnavailable:
-        logger.exception("Gemini API call failed")
-        raise
-    except Exception as exc:
-        logger.exception("Anthropic API call failed")
-        raise AnalysisUnavailable(str(exc)) from exc
+
+    text, last = None, ""
+    for name, fn in providers:
+        try:
+            text = fn(jpeg, system)
+            break
+        except Exception as exc:
+            last = f"{name}: {exc}"
+            logger.exception("%s analysis failed", name)
+    if text is None:
+        raise AnalysisUnavailable(last)
     try:
         return normalize(_extract_json(text))
     except (ValueError, json.JSONDecodeError) as exc:
