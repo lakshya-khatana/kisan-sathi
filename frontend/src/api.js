@@ -1,4 +1,6 @@
 const KEY = "sf_auth";
+// Empty = same origin (local dev proxy / Docker). On Vercel set VITE_API_URL=https://your-backend.onrender.com
+const BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 export const getAuth = () => {
   try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; }
@@ -21,9 +23,9 @@ async function request(path, { method = "GET", body, form } = {}) {
 
   let res;
   try {
-    res = await fetch(`/api${path}`, { method, headers, body: payload });
+    res = await fetch(`${BASE}/api${path}`, { method, headers, body: payload });
   } catch {
-    throw new Error("Cannot reach the server. Is the backend running on port 8000?");
+    throw new Error("Cannot reach the server. Please check your internet or try again in a minute (the server may be waking up).");
   }
   if (res.status === 204) return null;
 
