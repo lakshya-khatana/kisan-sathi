@@ -5,7 +5,8 @@ ANTHROPIC_API_KEY if set. Google's free tier occasionally answers 503 "high
 demand" -- to keep this fast AND reliable we race every configured Gemini
 model (GEMINI_MODEL + GEMINI_FALLBACK_MODELS) in parallel and use whichever
 answers first, instead of trying them one after another. Keys live only on
-the server. Every response is validated and normalised here so the frontend
+the server. Busy (503/429) answers are retried with a short back-off, and the whole
+provider attempt is repeated once before giving up. Every response is validated and normalised here so the frontend
 never receives unexpected data.
 """
 import base64
@@ -28,6 +29,8 @@ LANGUAGES = {
     "hindi": "Hindi (Devanagari script)",
     "english": "simple English",
 }
+GEMINI_ATTEMPTS = 3      # tries per model when Google says "busy"
+PROVIDER_ROUNDS = 2      # full attempts per provider before falling through
 SEVERITIES = ("none", "low", "moderate", "high", "critical")
 CONFIDENCES = ("high", "medium", "low")
 
@@ -146,19 +149,19 @@ def _gemini_call(model: str, body: dict) -> str:
 
 
 def _gemini_call_with_retry(model: str, body: dict) -> str:
-    """One model's full attempt: try once, and once more after a short pause if Google
-    reports it's busy (503/429/5xx). Runs inside a worker thread (see _analyze_gemini)."""
+    """One model's full attempt: retry with a short back-off when Google reports it's busy
+    (503/429/5xx). Runs inside a worker thread (see _analyze_gemini)."""
     last_exc = None
-    for attempt in range(2):
+    for attempt in range(GEMINI_ATTEMPTS):
         try:
             return _gemini_call(model, body)
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode(errors="replace")[:300]
             last_exc = AnalysisUnavailable(f"Gemini {model} HTTP {exc.code}: {detail}")
-            if exc.code in (500, 502, 503, 504, 429) and attempt == 0:
-                time.sleep(1)
+            if exc.code in (500, 502, 503, 504, 429) and attempt < GEMINI_ATTEMPTS - 1:
+                time.sleep(1 + attempt)          # 1s, then 2s
                 continue
-            raise last_exc from exc      # 404/403/400, or retry already used -> give up on this model
+            raise last_exc from exc      # 404/403/400, or retries used up -> give up on this model
         except Exception as exc:
             raise AnalysisUnavailable(f"Gemini {model}: {exc}") from exc
     raise last_exc
@@ -183,18 +186,18 @@ def _analyze_gemini(jpeg: bytes, system: str) -> str:
     }
     models = _gemini_models()
     last_exc = AnalysisUnavailable("no model tried")
-    with ThreadPoolExecutor(max_workers=len(models)) as pool:
+    pool = ThreadPoolExecutor(max_workers=len(models))
+    try:
         futures = {pool.submit(_gemini_call_with_retry, model, body): model for model in models}
         for future in as_completed(futures):
             try:
-                result = future.result()
+                return future.result()
             except Exception as exc:
                 last_exc = exc
                 logger.warning(str(exc))
-                continue
-            for other in futures:
-                other.cancel()   # no-op for already-running calls, but skips any not yet started
-            return result
+    finally:
+        # Don't wait for slower models once we have an answer (or all have failed).
+        pool.shutdown(wait=False, cancel_futures=True)
     raise last_exc
 
 
@@ -228,12 +231,17 @@ def analyze(raw: bytes, crop_hint: str = "", language: str = "hinglish") -> dict
 
     text, last = None, ""
     for name, fn in providers:
-        try:
-            text = fn(jpeg, system)
+        for round_no in range(PROVIDER_ROUNDS):
+            try:
+                text = fn(jpeg, system)
+                break
+            except Exception as exc:
+                last = f"{name}: {exc}"
+                logger.exception("%s analysis failed (round %d)", name, round_no + 1)
+                if round_no < PROVIDER_ROUNDS - 1:
+                    time.sleep(2)
+        if text is not None:
             break
-        except Exception as exc:
-            last = f"{name}: {exc}"
-            logger.exception("%s analysis failed", name)
     if text is None:
         raise AnalysisUnavailable(last)
     try:
