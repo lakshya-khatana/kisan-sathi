@@ -4,17 +4,20 @@ import Tabs from "../components/Tabs.jsx";
 import DemandForm from "../components/DemandForm.jsx";
 import DemandFeed from "../components/DemandFeed.jsx";
 import ProduceFeed from "../components/ProduceFeed.jsx";
+import BuyRequestList from "../components/BuyRequestList.jsx";
 
 const TABS = [
   { id: "post", label: "📢 Post a need" },
   { id: "mine", label: "🗂️ My requests" },
   { id: "browse", label: "🧺 Browse produce" },
+  { id: "sent", label: "📨 Sent requests" },
 ];
 
 export default function ConsumerDashboard() {
   const { user } = useAuth();
   const [tab, setTab] = useState("post");
   const [postCount, setPostCount] = useState(0);
+  const [buyCount, setBuyCount] = useState(0);
 
   return (
     <section className="dashboard">
@@ -24,7 +27,8 @@ export default function ConsumerDashboard() {
       <div className="panel">
         {tab === "post" && <DemandForm onPosted={() => setPostCount((n) => n + 1)} />}
         {tab === "mine" && <DemandFeed mine refreshKey={postCount} />}
-        {tab === "browse" && <ProduceFeed />}
+        {tab === "browse" && <ProduceFeed canBuy onRequested={() => setBuyCount((n) => n + 1)} />}
+        {tab === "sent" && <BuyRequestList role="consumer" refreshKey={buyCount} />}
       </div>
     </section>
   );

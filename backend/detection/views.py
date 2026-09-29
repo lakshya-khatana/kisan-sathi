@@ -10,9 +10,9 @@ from rest_framework.response import Response
 
 from . import analyzer
 from .throttles import ScanThrottle
-from .models import Advisory, Demand, ProduceListing, Scan
+from .models import Advisory, BuyRequest, Demand, ProduceListing, Scan
 from .permissions import IsConsumer, IsExpert, IsFarmer
-from .serializers import (AdvisorySerializer, DemandSerializer,
+from .serializers import (AdvisorySerializer, BuyRequestSerializer, DemandSerializer,
                           ProduceListingSerializer, ScanSerializer)
 
 logger = logging.getLogger(__name__)
@@ -162,6 +162,59 @@ def produce_detail(request, pk):
     listing = get_object_or_404(ProduceListing, pk=pk, farmer=request.user)
     listing.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+@permission_classes([IsConsumer])
+def produce_buy_request(request, pk):
+    """POST /api/produce/<id>/request/  (consumers only) - ask to buy from a listing."""
+    listing = get_object_or_404(ProduceListing.objects.select_related("farmer"), pk=pk, is_available=True)
+    if BuyRequest.objects.filter(listing=listing, consumer=request.user,
+                                 status=BuyRequest.STATUS_PENDING).exists():
+        return Response({"error": "You already have a pending request for this listing."},
+                        status=status.HTTP_400_BAD_REQUEST)
+    serializer = BuyRequestSerializer(data=request.data, context={"request": request})
+    if not serializer.is_valid():
+        first = next(iter(serializer.errors.values()))[0]
+        field = next(iter(serializer.errors.keys()))
+        return Response({"error": f"{field}: {first}"}, status=status.HTTP_400_BAD_REQUEST)
+    serializer.save(listing=listing, farmer=listing.farmer, consumer=request.user, crop=listing.crop)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+def buy_requests(request):
+    """
+    GET /api/buy-requests/
+      farmers   -> requests received on their listings
+      consumers -> requests they have sent
+    """
+    if IsFarmer().has_permission(request, None):
+        queryset = BuyRequest.objects.filter(farmer=request.user)
+    elif IsConsumer().has_permission(request, None):
+        queryset = BuyRequest.objects.filter(consumer=request.user)
+    else:
+        return Response({"error": "Only farmer or consumer accounts can do this."},
+                        status=status.HTTP_403_FORBIDDEN)
+    queryset = queryset.select_related("listing", "farmer", "consumer")
+    return Response(BuyRequestSerializer(queryset[:100], many=True, context={"request": request}).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsFarmer])
+def buy_request_respond(request, pk):
+    """POST /api/buy-requests/<id>/respond/  body: {"status": "accepted" | "rejected"}"""
+    buy_request = get_object_or_404(BuyRequest, pk=pk, farmer=request.user)
+    new_status = request.data.get("status")
+    if new_status not in (BuyRequest.STATUS_ACCEPTED, BuyRequest.STATUS_REJECTED):
+        return Response({"error": "status must be 'accepted' or 'rejected'."},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if buy_request.status != BuyRequest.STATUS_PENDING:
+        return Response({"error": "This request has already been answered."},
+                        status=status.HTTP_400_BAD_REQUEST)
+    buy_request.status = new_status
+    buy_request.save(update_fields=["status"])
+    return Response(BuyRequestSerializer(buy_request, context={"request": request}).data)
 
 
 @api_view(["GET"])

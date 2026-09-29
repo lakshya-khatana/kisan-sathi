@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Advisory, Demand, ProduceListing, Profile, Scan
+from .models import Advisory, BuyRequest, Demand, ProduceListing, Profile, Scan
 
 admin.site.site_header = "KISAN SATHI – Admin"
 admin.site.site_title = "KISAN SATHI Admin"
@@ -45,4 +45,12 @@ class ProduceListingAdmin(admin.ModelAdmin):
     list_display = ("crop", "quantity", "price", "location", "farmer", "is_available", "created_at")
     list_filter = ("is_available", "created_at")
     search_fields = ("crop", "location", "farmer__username", "contact_phone")
+    date_hierarchy = "created_at"
+
+
+@admin.register(BuyRequest)
+class BuyRequestAdmin(admin.ModelAdmin):
+    list_display = ("crop", "quantity", "consumer", "farmer", "status", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("crop", "consumer__username", "farmer__username", "contact_phone")
     date_hierarchy = "created_at"

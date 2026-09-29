@@ -74,3 +74,25 @@ class Advisory(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class BuyRequest(models.Model):
+    """A consumer's request to buy some quantity of a farmer's listing.
+    Payment happens offline; the farmer just accepts or rejects."""
+    STATUS_PENDING = "pending"
+    STATUS_ACCEPTED = "accepted"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = [(STATUS_PENDING, "Pending"), (STATUS_ACCEPTED, "Accepted"), (STATUS_REJECTED, "Rejected")]
+
+    listing = models.ForeignKey(ProduceListing, null=True, on_delete=models.SET_NULL, related_name="buy_requests")
+    farmer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="incoming_buy_requests")
+    consumer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_buy_requests")
+    crop = models.CharField(max_length=80)              # snapshot, so history survives if the listing is removed
+    quantity = models.CharField(max_length=40)
+    message = models.TextField(max_length=500, blank=True)
+    contact_phone = models.CharField(max_length=20)     # consumer's phone, shown to the farmer
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]

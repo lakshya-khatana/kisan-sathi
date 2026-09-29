@@ -17,5 +17,8 @@ urlpatterns = [
     path("demands/<int:pk>/", views.demand_detail, name="demand-detail"),
     path("produce/", views.produce, name="produce"),
     path("produce/<int:pk>/", views.produce_detail, name="produce-detail"),
+    path("produce/<int:pk>/request/", views.produce_buy_request, name="produce-buy-request"),
+    path("buy-requests/", views.buy_requests, name="buy-requests"),
+    path("buy-requests/<int:pk>/respond/", views.buy_request_respond, name="buy-request-respond"),
     path("health/", views.health_check, name="health-check"),
 ]

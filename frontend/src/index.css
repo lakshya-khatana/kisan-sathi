@@ -157,3 +157,12 @@ a { color: inherit; text-decoration: none; }
 .badge-col{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 .result-section{margin-top:16px}.result-section h4{margin:0 0 4px}.result-section ul{margin:0;padding-left:20px}
 .notice{background:#fff8e1;border:1px solid #ffe082;color:#5d4300;border-radius:10px;padding:10px 12px;margin:12px 0}
+
+/* --- Buy requests --- */
+.action-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.action-row .btn { padding: 8px 14px; font-size: .9rem; }
+.buy-form { background: var(--green-100); border-radius: 12px; padding: 14px; margin-top: 8px; }
+.tag-status { font-size: .8rem; }
+.tag-pending { background: #fff3cd; color: #7a5b00; }
+.tag-accepted { background: var(--green-100); color: var(--green-900); }
+.tag-rejected { background: #fde2e2; color: #9b1c1c; }

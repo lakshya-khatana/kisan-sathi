@@ -7,6 +7,7 @@ import AdvisoryFeed from "../components/AdvisoryFeed.jsx";
 import DemandFeed from "../components/DemandFeed.jsx";
 import ProduceForm from "../components/ProduceForm.jsx";
 import ProduceFeed from "../components/ProduceFeed.jsx";
+import BuyRequestList from "../components/BuyRequestList.jsx";
 
 const TABS = [
   { id: "scan", label: "📸 Scan leaf" },
@@ -14,6 +15,7 @@ const TABS = [
   { id: "advice", label: "🏛️ Expert updates" },
   { id: "buyers", label: "🛒 Buyer demand" },
   { id: "sell", label: "📦 Sell produce" },
+  { id: "orders", label: "📥 Buy requests" },
 ];
 
 export default function FarmerDashboard() {
@@ -35,6 +37,12 @@ export default function FarmerDashboard() {
           <div className="stack">
             <p className="muted small">Crops buyers are looking for right now — grow or sell what's in demand.</p>
             <DemandFeed />
+          </div>
+        )}
+        {tab === "orders" && (
+          <div className="stack">
+            <p className="muted small">Buyers ki requests — accept karo to buyer ko aapka number dikhega. Payment aap dono aapas me tay karo.</p>
+            <BuyRequestList role="farmer" />
           </div>
         )}
         {tab === "sell" && (
