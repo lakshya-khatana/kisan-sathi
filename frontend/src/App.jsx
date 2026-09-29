@@ -27,8 +27,18 @@ export default function App() {
         </Routes>
       </main>
       <footer className="site-footer">
-        <p>{SITE_NAME} · Kisan ka digital saathi</p>
-        <p className="muted">Treatment text is general guidance. Consult a local agriculture officer for serious outbreaks.</p>
+        <div className="footer-field" aria-hidden="true">🌾 🌱 🌾 🌱 🌾 🌱 🌾</div>
+        <p className="footer-brand">{SITE_NAME} · Kisan ka digital saathi</p>
+        <p className="muted small">Treatment text is general guidance. Consult a local agriculture officer for serious outbreaks.</p>
+        <p className="footer-credit">
+          Made with <span className="footer-heart">💚</span> for Indian farmers by <b>Lakshya Khatana</b>
+        </p>
+        <p className="footer-links">
+          <a href="https://github.com/lakshya-khatana/kisan-sathi" target="_blank" rel="noreferrer">GitHub</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://www.linkedin.com/in/lakshya-khatana" target="_blank" rel="noreferrer">LinkedIn</a>
+        </p>
+        <p className="muted small">© {new Date().getFullYear()} {SITE_NAME}</p>
       </footer>
     </div>
   );

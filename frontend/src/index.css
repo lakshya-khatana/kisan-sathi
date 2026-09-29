@@ -98,8 +98,22 @@ a { color: inherit; text-decoration: none; }
 .step span { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--green-700); color: #fff; font-weight: 800; display: grid; place-items: center; }
 .step p { margin: 0; }
 
-.site-footer { text-align: center; padding: 26px 16px 34px; background: #fff; border-top: 1px solid var(--line); font-size: .9rem; }
+.site-footer {
+  text-align: center; padding: 18px 16px 30px; font-size: .9rem;
+  background: linear-gradient(#fff, var(--green-100));
+  border-top: 4px solid var(--wheat);
+}
 .site-footer p { margin: 0 0 4px; }
+.footer-field { font-size: 1.1rem; letter-spacing: 6px; opacity: .85; margin-bottom: 8px; }
+.footer-brand { font-weight: 700; color: var(--green-900); font-size: 1rem; }
+.footer-credit { margin-top: 12px; font-size: .95rem; color: var(--ink); }
+.footer-credit b { color: var(--green-900); }
+.footer-heart { display: inline-block; animation: footer-beat 1.8s ease-in-out infinite; }
+@keyframes footer-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+.footer-links { display: flex; justify-content: center; gap: 10px; margin: 2px 0 8px; }
+.footer-links a { color: var(--green-700); font-weight: 600; }
+.footer-links a:hover { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) { .footer-heart { animation: none; } }
 
 /* ---------- auth ---------- */
 .auth-wrap { display: flex; justify-content: center; padding: 40px 16px 60px; }
