@@ -20,7 +20,7 @@ from .models import Profile
 from .throttles import AuthThrottle
 
 logger = logging.getLogger(__name__)
-ROLES = {"farmer": "Farmer", "expert": "Expert"}
+ROLES = {"farmer": "Farmer", "expert": "Expert", "consumer": "Consumer"}
 
 
 def _payload(user):
@@ -50,7 +50,7 @@ def register(request):
     role = data.get("role")
 
     if role not in ROLES:
-        return _error("Please choose Farmer or Expert.")
+        return _error("Please choose Farmer, Consumer or Expert.")
     if not name:
         return _error("Please enter your name.")
     try:

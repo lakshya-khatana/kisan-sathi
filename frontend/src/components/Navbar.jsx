@@ -24,6 +24,7 @@ export default function Navbar() {
         ) : (
           <>
             <Link className="btn btn-ghost" to="/login?role=expert">Expert login</Link>
+            <Link className="btn btn-ghost" to="/login?role=consumer">Consumer login</Link>
             <Link className="btn btn-primary" to="/login?role=farmer">Farmer login</Link>
           </>
         )}

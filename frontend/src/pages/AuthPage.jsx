@@ -3,14 +3,16 @@ import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 
 const ROLE_INFO = {
-  farmer: { title: "Farmer", blurb: "Scan diseased leaves and read benefits shared by experts." },
-  expert: { title: "Expert", blurb: "Share schemes, benefits and alerts with farmers." },
+  farmer: { title: "Farmer", icon: "🧑‍🌾", blurb: "Scan diseased leaves, read benefits shared by experts, and sell your produce directly to buyers." },
+  consumer: { title: "Consumer", icon: "🛒", blurb: "Tell farmers what crops you need, and buy fresh produce directly from them." },
+  expert: { title: "Expert", icon: "🎓", blurb: "Share schemes, benefits and alerts with farmers." },
 };
+const ROLE_KEYS = Object.keys(ROLE_INFO);
 
 export default function AuthPage() {
   const [params] = useSearchParams();
   const { user, login, register, logout } = useAuth();
-  const [role, setRole] = useState(params.get("role") === "expert" ? "expert" : "farmer");
+  const [role, setRole] = useState(ROLE_KEYS.includes(params.get("role")) ? params.get("role") : "farmer");
   const [mode, setMode] = useState(params.get("mode") === "register" ? "register" : "login");
   const [form, setForm] = useState({ name: "", email: "", password: "", access_code: "" });
   const [error, setError] = useState(null);
@@ -60,7 +62,7 @@ export default function AuthPage() {
               className={`role-tab ${role === key ? "active" : ""}`}
               onClick={() => { setRole(key); setError(null); }}
             >
-              {key === "farmer" ? "🧑‍🌾" : "🎓"} {info.title}
+              {info.icon} {info.title}
             </button>
           ))}
         </div>

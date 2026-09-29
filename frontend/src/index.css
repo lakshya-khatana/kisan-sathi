@@ -104,8 +104,8 @@ a { color: inherit; text-decoration: none; }
 /* ---------- auth ---------- */
 .auth-wrap { display: flex; justify-content: center; padding: 40px 16px 60px; }
 .auth-card { width: 100%; max-width: 440px; padding: 24px; }
-.role-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--green-100); padding: 5px; border-radius: 12px; margin-bottom: 18px; }
-.role-tab { border: 0; background: transparent; padding: 10px; border-radius: 9px; font: inherit; font-weight: 700; cursor: pointer; color: var(--muted); }
+.role-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--green-100); padding: 5px; border-radius: 12px; margin-bottom: 18px; }
+.role-tab { border: 0; background: transparent; padding: 10px 4px; border-radius: 9px; font: inherit; font-weight: 700; cursor: pointer; color: var(--muted); font-size: .92rem; }
 .role-tab.active { background: #fff; color: var(--green-900); box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
 .switch-mode { text-align: center; margin: 16px 0 0; font-size: .92rem; }
 
@@ -143,6 +143,8 @@ a { color: inherit; text-decoration: none; }
 .tag-tip { background: var(--green-100); color: var(--green-900); }
 .tag-alert { background: #fde2e2; color: #9b1c1c; }
 .tag-crop { background: #efe6d8; color: var(--soil); }
+.tag-open { background: var(--green-100); color: var(--green-900); }
+.tag-price { background: #fff3cd; color: #7a5b00; }
 
 @media (max-width: 640px) {
   .navbar { padding: 10px 14px; }

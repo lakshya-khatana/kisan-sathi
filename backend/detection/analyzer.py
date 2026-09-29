@@ -1,9 +1,12 @@
 """Leaf-photo analysis through a vision LLM API.
 
-Provider is chosen by which key is set: GEMINI_API_KEY (Google AI Studio, has a
-free tier) is used if present, otherwise ANTHROPIC_API_KEY. Keys live only on the
-server. Every response is validated and normalised here so the frontend never
-receives unexpected data.
+GEMINI_API_KEY (Google AI Studio, has a free tier) is tried first, then
+ANTHROPIC_API_KEY if set. Google's free tier occasionally answers 503 "high
+demand" -- to keep this fast AND reliable we race every configured Gemini
+model (GEMINI_MODEL + GEMINI_FALLBACK_MODELS) in parallel and use whichever
+answers first, instead of trying them one after another. Keys live only on
+the server. Every response is validated and normalised here so the frontend
+never receives unexpected data.
 """
 import base64
 import io
@@ -13,6 +16,7 @@ import re
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from django.conf import settings
 from PIL import Image, ImageOps
@@ -141,11 +145,33 @@ def _gemini_call(model: str, body: dict) -> str:
         raise AnalysisUnavailable(f"unexpected Gemini reply: {str(data)[:300]}") from exc
 
 
-def _analyze_gemini(jpeg: bytes, system: str) -> str:
-    """Call the Gemini REST API (no extra dependency).
+def _gemini_call_with_retry(model: str, body: dict) -> str:
+    """One model's full attempt: try once, and once more after a short pause if Google
+    reports it's busy (503/429/5xx). Runs inside a worker thread (see _analyze_gemini)."""
+    last_exc = None
+    for attempt in range(2):
+        try:
+            return _gemini_call(model, body)
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode(errors="replace")[:300]
+            last_exc = AnalysisUnavailable(f"Gemini {model} HTTP {exc.code}: {detail}")
+            if exc.code in (500, 502, 503, 504, 429) and attempt == 0:
+                time.sleep(1)
+                continue
+            raise last_exc from exc      # 404/403/400, or retry already used -> give up on this model
+        except Exception as exc:
+            raise AnalysisUnavailable(f"Gemini {model}: {exc}") from exc
+    raise last_exc
 
-    Google's free tier often answers 503 "high demand" or 429; those are temporary, so
-    we retry briefly and then fall back to the next model in GEMINI_FALLBACK_MODELS.
+
+def _analyze_gemini(jpeg: bytes, system: str) -> str:
+    """Race every configured Gemini model at once and return whichever answers first.
+
+    Google's free tier is sometimes slow to answer or briefly "busy" (503/429) on any
+    given model, but rarely on all of them at the same moment. Trying them in parallel
+    (rather than one after another) gets a farmer their result as fast as whichever
+    model happens to be free right now, instead of always paying the cost of every
+    earlier model's retries first.
     """
     body = {
         "systemInstruction": {"parts": [{"text": system}]},
@@ -155,26 +181,21 @@ def _analyze_gemini(jpeg: bytes, system: str) -> str:
         ]}],
         "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 4000, "temperature": 0.2},
     }
-    last = "no model tried"
-    for model in _gemini_models():
-        for attempt in range(3):
+    models = _gemini_models()
+    last_exc = AnalysisUnavailable("no model tried")
+    with ThreadPoolExecutor(max_workers=len(models)) as pool:
+        futures = {pool.submit(_gemini_call_with_retry, model, body): model for model in models}
+        for future in as_completed(futures):
             try:
-                return _gemini_call(model, body)
-            except urllib.error.HTTPError as exc:
-                detail = exc.read().decode(errors="replace")[:300]
-                last = f"Gemini {model} HTTP {exc.code}: {detail}"
-                logger.warning(last)
-                if exc.code in (500, 502, 503, 504, 429) and attempt < 2:
-                    time.sleep(2 * (attempt + 1))
-                    continue
-                break            # 404/403/400 or retry used up -> next model
-            except AnalysisUnavailable:
-                raise
+                result = future.result()
             except Exception as exc:
-                last = f"Gemini {model}: {exc}"
-                logger.warning(last)
-                break
-    raise AnalysisUnavailable(last)
+                last_exc = exc
+                logger.warning(str(exc))
+                continue
+            for other in futures:
+                other.cancel()   # no-op for already-running calls, but skips any not yet started
+            return result
+    raise last_exc
 
 
 def _analyze_anthropic(jpeg: bytes, system: str) -> str:

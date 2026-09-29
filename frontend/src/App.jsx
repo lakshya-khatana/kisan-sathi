@@ -8,6 +8,7 @@ import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import FarmerDashboard from "./pages/FarmerDashboard.jsx";
 import ExpertDashboard from "./pages/ExpertDashboard.jsx";
+import ConsumerDashboard from "./pages/ConsumerDashboard.jsx";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/farmer" element={<Protected role="farmer"><FarmerDashboard /></Protected>} />
           <Route path="/expert" element={<Protected role="expert"><ExpertDashboard /></Protected>} />
+          <Route path="/consumer" element={<Protected role="consumer"><ConsumerDashboard /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -23,6 +23,7 @@ const FEATURES = [
   { icon: "🔬", title: "Instant disease detection", text: "A deep-learning model trained on 38 crop-disease classes names the problem and shows how confident it is." },
   { icon: "💊", title: "Clear treatment advice", text: "Get practical steps to control the disease, with a severity rating so you know how urgent it is." },
   { icon: "🏛️", title: "Benefits from experts", text: "Agriculture experts share government schemes, seasonal tips and disease alerts right in your dashboard." },
+  { icon: "🛒", title: "Sell straight to buyers", text: "See what crops buyers want, list your produce, and connect directly — no middleman." },
 ];
 
 export default function Landing() {
@@ -38,6 +39,7 @@ export default function Landing() {
           </p>
           <div className="hero-cta">
             <Link className="btn btn-primary btn-lg" to="/login?role=farmer&mode=register">I'm a Farmer — get started</Link>
+            <Link className="btn btn-outline btn-lg" to="/login?role=consumer&mode=register">I want to buy crops</Link>
             <Link className="btn btn-outline btn-lg" to="/login?role=expert">I'm an Expert</Link>
           </div>
         </div>
@@ -60,9 +62,10 @@ export default function Landing() {
       <section className="section alt">
         <h2 className="section-title">How it works</h2>
         <div className="steps">
-          <div className="step"><span>1</span><p><b>Create a free account</b> as a Farmer or an Expert.</p></div>
-          <div className="step"><span>2</span><p><b>Farmers</b> upload a leaf photo and get the diagnosis and treatment.</p></div>
-          <div className="step"><span>3</span><p><b>Experts</b> post schemes, benefits and alerts that every farmer can read.</p></div>
+          <div className="step"><span>1</span><p><b>Create a free account</b> as a Farmer, Consumer or Expert.</p></div>
+          <div className="step"><span>2</span><p><b>Farmers</b> upload a leaf photo for diagnosis, see what buyers need, and list produce for sale.</p></div>
+          <div className="step"><span>3</span><p><b>Consumers</b> post what crops they need and buy directly from farmers.</p></div>
+          <div className="step"><span>4</span><p><b>Experts</b> post schemes, benefits and alerts that every farmer can read.</p></div>
         </div>
       </section>
     </>

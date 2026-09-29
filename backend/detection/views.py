@@ -10,9 +10,10 @@ from rest_framework.response import Response
 
 from . import analyzer
 from .throttles import ScanThrottle
-from .models import Advisory, Scan
-from .permissions import IsExpert, IsFarmer
-from .serializers import AdvisorySerializer, ScanSerializer
+from .models import Advisory, Demand, ProduceListing, Scan
+from .permissions import IsConsumer, IsExpert, IsFarmer
+from .serializers import (AdvisorySerializer, DemandSerializer,
+                          ProduceListingSerializer, ScanSerializer)
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,82 @@ def advisories(request):
 def advisory_detail(request, pk):
     advisory = get_object_or_404(Advisory, pk=pk, author=request.user)
     advisory.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET", "POST"])
+def demands(request):
+    """
+    Marketplace - what buyers want.
+    GET  /api/demands/   any logged-in user (?mine=1 -> only my requests, ?crop= filter)
+    POST /api/demands/   consumers only
+    """
+    if request.method == "POST":
+        if not IsConsumer().has_permission(request, None):
+            return Response({"error": IsConsumer.message}, status=status.HTTP_403_FORBIDDEN)
+        serializer = DemandSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            first = next(iter(serializer.errors.values()))[0]
+            field = next(iter(serializer.errors.keys()))
+            return Response({"error": f"{field}: {first}"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save(consumer=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    queryset = Demand.objects.select_related("consumer")
+    if request.query_params.get("mine") == "1":
+        queryset = queryset.filter(consumer=request.user)
+    else:
+        queryset = queryset.filter(is_open=True)
+    crop = request.query_params.get("crop")
+    if crop:
+        queryset = queryset.filter(crop__icontains=crop)
+    return Response(DemandSerializer(queryset[:100], many=True, context={"request": request}).data)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsConsumer])
+def demand_detail(request, pk):
+    """A consumer closes their own request once it's fulfilled (or no longer needed)."""
+    demand = get_object_or_404(Demand, pk=pk, consumer=request.user)
+    demand.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET", "POST"])
+def produce(request):
+    """
+    Marketplace - what farmers have to sell.
+    GET  /api/produce/   any logged-in user (?mine=1 -> only my listings, ?crop= filter)
+    POST /api/produce/   farmers only
+    """
+    if request.method == "POST":
+        if not IsFarmer().has_permission(request, None):
+            return Response({"error": IsFarmer.message}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ProduceListingSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            first = next(iter(serializer.errors.values()))[0]
+            field = next(iter(serializer.errors.keys()))
+            return Response({"error": f"{field}: {first}"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save(farmer=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    queryset = ProduceListing.objects.select_related("farmer")
+    if request.query_params.get("mine") == "1":
+        queryset = queryset.filter(farmer=request.user)
+    else:
+        queryset = queryset.filter(is_available=True)
+    crop = request.query_params.get("crop")
+    if crop:
+        queryset = queryset.filter(crop__icontains=crop)
+    return Response(ProduceListingSerializer(queryset[:100], many=True, context={"request": request}).data)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsFarmer])
+def produce_detail(request, pk):
+    """A farmer removes their own listing once it's sold out."""
+    listing = get_object_or_404(ProduceListing, pk=pk, farmer=request.user)
+    listing.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
