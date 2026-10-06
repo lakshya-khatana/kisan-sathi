@@ -18,10 +18,10 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 EXPERT_SIGNUP_CODE = os.environ.get("EXPERT_SIGNUP_CODE", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-ANALYSIS_MODEL = os.environ.get("ANALYSIS_MODEL", "claude-sonnet-5")
+ANALYSIS_MODEL = os.environ.get("ANALYSIS_MODEL", "claude-sonnet-5-5")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")   # free key from aistudio.google.com; used first if set
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
-GEMINI_FALLBACK_MODELS = os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-3.7-flash,gemini-3.5-flash")  # tried if the main model is busy
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_FALLBACK_MODELS = os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-3.5-flash,gemini-2.5-flash-lite")  # tried if the main model is busy
 
 if DEBUG:
     SECRET_KEY = SECRET_KEY or "dev-only-insecure-key"

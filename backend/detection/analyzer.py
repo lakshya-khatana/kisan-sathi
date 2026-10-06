@@ -142,8 +142,12 @@ def _gemini_call(model: str, body: dict) -> str:
     with urllib.request.urlopen(req, timeout=45) as resp:
         data = json.loads(resp.read().decode())
     try:
-        parts = data["candidates"][0]["content"]["parts"]
-        return "".join(p.get("text", "") for p in parts)
+        cand = data["candidates"][0]
+        parts = cand["content"]["parts"]
+        text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
+        if not text.strip():
+            raise AnalysisUnavailable(f"Gemini {model} empty reply (finishReason={cand.get('finishReason')})")
+        return text
     except (KeyError, IndexError, TypeError) as exc:
         raise AnalysisUnavailable(f"unexpected Gemini reply: {str(data)[:300]}") from exc
 
@@ -182,7 +186,7 @@ def _analyze_gemini(jpeg: bytes, system: str) -> str:
             {"inline_data": {"mime_type": "image/jpeg", "data": base64.b64encode(jpeg).decode()}},
             {"text": "Analyze this crop photo and reply with the JSON object only."},
         ]}],
-        "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 4000, "temperature": 0.2},
+        "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 8192, "temperature": 0.2},
     }
     models = _gemini_models()
     last_exc = AnalysisUnavailable("no model tried")
