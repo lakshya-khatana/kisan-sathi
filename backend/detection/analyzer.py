@@ -74,7 +74,9 @@ Reply with ONLY one JSON object, no markdown, with exactly these keys:
 {{"photo_ok": bool, "photo_issue": str, "crop": str, "is_healthy": bool, "disease": str, "scientific_name": str,
 "confidence": "high"|"medium"|"low", "severity": "none"|"low"|"moderate"|"high"|"critical",
 "visible_symptoms": [str], "cause": str, "urgency": str, "organic_treatment": [str], "chemical_treatment": [str],
-"prevention": [str], "alternatives": [{{"name": str, "why": str}}], "see_expert_if": str}}"""
+"prevention": [str], "alternatives": [{{"name": str, "why": str}}], "see_expert_if": str,
+"products": [{{"ingredient": str, "kind": "fungicide"|"insecticide"|"bactericide"|"miticide"|"fertilizer"|"other", "example_brands": [str], "how_to_use": str}}]}}
+For "products" list at most 4 items matching your chemical_treatment (active ingredient, kind, short how_to_use). example_brands: only well-known Indian brand names you are sure about, else an empty list.""" 
 
 
 def _extract_json(text: str) -> dict:
@@ -90,6 +92,15 @@ def _s(value, limit=600) -> str:
 
 def _list(value, limit=8) -> list:
     return [_s(v, 400) for v in value[:limit] if _s(v)] if isinstance(value, list) else []
+
+
+def _products(value) -> list:
+    out = []
+    for p in (value or [])[:4] if isinstance(value, list) else []:
+        if isinstance(p, dict) and _s(p.get("ingredient")):
+            out.append({"ingredient": _s(p.get("ingredient"), 120), "kind": _s(p.get("kind"), 30).lower() or "other",
+                        "example_brands": _list(p.get("example_brands"), 3), "how_to_use": _s(p.get("how_to_use"), 300)})
+    return out
 
 
 def normalize(data: dict) -> dict:
@@ -118,6 +129,7 @@ def normalize(data: dict) -> dict:
         "prevention": _list(data.get("prevention")),
         "alternatives": alts,
         "see_expert_if": _s(data.get("see_expert_if")),
+        "products": _products(data.get("products")),
     }
 
 

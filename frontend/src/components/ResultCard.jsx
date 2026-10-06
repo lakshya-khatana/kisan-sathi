@@ -12,6 +12,33 @@ function List({ title, items }) {
   );
 }
 
+const gSearch = (q, images) =>
+  `https://www.google.com/search?${images ? "tbm=isch&" : ""}q=${encodeURIComponent(q)}`;
+
+function Products({ items }) {
+  if (!items?.length) return null;
+  return (
+    <div className="result-section">
+      <h4>Dawai / product (photo dekh ke dukaan se le sakte hain)</h4>
+      <div className="product-grid">
+        {items.map((p, i) => (
+          <div className="product-card" key={i}>
+            <b>{p.ingredient}</b>
+            <span className="muted small"> · {p.kind}</span>
+            {p.example_brands?.length > 0 && <p className="small">Brands (example): {p.example_brands.join(", ")}</p>}
+            {p.how_to_use && <p className="small">{p.how_to_use}</p>}
+            <div className="product-links">
+              <a className="btn btn-outline" href={gSearch(`${p.ingredient} ${p.kind} India packet`, true)} target="_blank" rel="noopener noreferrer">📷 Photo dekho</a>
+              <a className="btn btn-ghost" href={gSearch(`${p.ingredient} ${p.kind} buy online India`, false)} target="_blank" rel="noopener noreferrer">🛒 Kahan milega</a>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="muted small">Dukaan pe active ingredient ka naam packet par dekh ke match karein, aur label ki dose follow karein.</p>
+    </div>
+  );
+}
+
 export default function ResultCard({ result }) {
   if (!result) return null;
 
@@ -50,6 +77,7 @@ export default function ResultCard({ result }) {
       {r.cause && <div className="result-section"><h4>Cause</h4><p>{r.cause}</p></div>}
       <List title="Organic / low-cost options" items={r.organic_treatment} />
       <List title="Chemical options" items={r.chemical_treatment} />
+      <Products items={r.products} />
       <List title="Prevention" items={r.prevention} />
 
       {r.alternatives?.length > 0 && (
